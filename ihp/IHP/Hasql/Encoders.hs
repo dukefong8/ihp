@@ -10,13 +10,13 @@ This module provides orphan 'DefaultParamEncoder' instances for types that
 hasql-implicits doesn't support out of the box.
 
 The 'Int' family ('Int', '[Int]', 'Maybe Int', '[Maybe Int]', 'Integer',
-'Vector Int') and the 'Id'' encoders are defined in "IHP.TypedSql.Encoders"
-(the 'Id'' type and 'PrimaryKey' family themselves live in
-"IHP.TypedSql.Id"), together with those for the @postgresql-types@ values
-that typedSql generates ('Point', 'Polygon', 'Inet', 'Tsvector',
-'Interval'). Both are merely pulled in here by import, because
-@ihp-typed-sql@ needs them standalone too and exactly one package may define
-each one.
+'Vector Int'), the 'Id'' encoders and the @postgresql-types@ values that
+typedSql generates ('Point', 'Polygon', 'Inet', 'Tsvector', 'Interval',
+PostGIS 'Geometry') are defined in "IHP.TypedSql.Encoders" (the 'Id'' type
+and 'PrimaryKey' family themselves live in "IHP.TypedSql.Id"). They are
+merely pulled in here by import, because @ihp-typed-sql@ needs them
+standalone too and exactly one package may define each one. Only the
+@postgresql-simple@-specific 'Binary' wrapper stays defined in @ihp@.
 -}
 module IHP.Hasql.Encoders
 ( ToSnippetParams(..)
@@ -36,15 +36,7 @@ import Data.Functor.Contravariant (contramap)
 import IHP.TypedSql.Id ()
 import IHP.TypedSql.Encoders ()
 import Database.PostgreSQL.Simple.Types (Binary(..))
-import Data.String (fromString)
-import qualified Hasql.Decoders as Decoders
-import qualified Hasql.Mapping.IsScalar as Mapping
 import Hasql.PostgresqlTypes ()
-import PostgresqlTypes.Algebra (IsScalar (binaryDecoder, binaryEncoder, textualEncoder))
-import qualified PtrPeeker
-import qualified PtrPoker.Write as Write
-import qualified TextBuilder
-import PostgresqlTypes.Geometry (Geometry)
 
 -- | Encode 'Binary ByteString' as PostgreSQL bytea
 -- IHP wraps bytea columns in Binary, so we need to unwrap before encoding
@@ -54,49 +46,6 @@ instance DefaultParamEncoder (Binary ByteString) where
 -- | Encode 'Maybe (Binary ByteString)' as nullable PostgreSQL bytea
 instance DefaultParamEncoder (Maybe (Binary ByteString)) where
     defaultParam = Encoders.nullable (contramap (\(Binary bs) -> bs) Encoders.bytea)
-
--- | 'Hasql.Mapping.IsScalar' bridge for 'Geometry'.
---
--- 'Hasql.PostgresqlTypes' ships these instances for every standard
--- 'postgresql-types' type, but has not yet added 'Geometry' (merged upstream
--- in nikita-volkov/postgresql-types#69). This mirrors
--- 'Hasql.PostgresqlTypes.Core' until that package catches up.
---
--- Because the PostGIS extension assigns the @geometry@ OID dynamically at
--- @CREATE EXTENSION@ time, no static OIDs are provided and hasql resolves
--- the type by @typeName@ at query time.
-instance Mapping.IsScalar Geometry where
-    encoder =
-        Encoders.custom
-            Nothing
-            "geometry"
-            Nothing
-            []
-            (\_ value -> Write.toByteString (binaryEncoder value))
-            (TextBuilder.toText . textualEncoder)
-    decoder =
-        Decoders.custom
-            Nothing
-            "geometry"
-            Nothing
-            []
-            ( \_ bytes ->
-                case PtrPeeker.runVariableOnByteString (binaryDecoder @Geometry) bytes of
-                    Left bytesUnconsumed ->
-                        Left ("Binary decoder did not consume all input bytes, unconsumed bytes: " <> fromString (show bytesUnconsumed))
-                    Right (Left err) -> Left (fromString (show err))
-                    Right (Right value) -> Right value
-            )
-
--- | Encode 'Geometry' as a PostGIS geometry via postgresql-types binary encoder.
---   The OID is resolved by name at query time since the PostGIS extension
---   assigns it dynamically.
-instance DefaultParamEncoder Geometry where
-    defaultParam = Encoders.nonNullable Mapping.encoder
-
--- | Encode 'Maybe Geometry' as a nullable PostGIS geometry
-instance DefaultParamEncoder (Maybe Geometry) where
-    defaultParam = Encoders.nullable Mapping.encoder
 
 -- | Converts parameter tuples into a list of hasql 'Snippet' values.
 --
