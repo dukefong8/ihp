@@ -11,7 +11,7 @@
 , ihp-router, ihp-typed-sql, inflections, interpolate, lib, mime-types, minio-hs
 , mono-traversable, mtl, neat-interpolation, network, network-uri
 , parser-combinators, postgresql-simple
-, postgresql-simple-postgresql-types, postgresql-types
+, postgresql-simple-postgresql-types, postgresql-types, pqi-ffi
 , postgresql-types-algebra, process, ptr-peeker, ptr-poker
 , pwstore-fast, random, random-strings, regex-tdfa, resource-pool
 , resourcet, safe-exceptions, scientific, slugger, split, stm
@@ -35,7 +35,7 @@ mkDerivation {
     cookie countable-inflections data-default deepseq directory
     fast-logger filepath ghc-prim hashable haskell-src-exts
     haskell-src-meta hasql hasql-dynamic-statements hasql-implicits
-    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction
+    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction pqi-ffi
     http-client http-client-tls http-media http-types ihp-hsx
     ihp-imagemagick ihp-modal ihp-pagehead ihp-pglistener
     ihp-router ihp-typed-sql inflections interpolate mime-types minio-hs
@@ -59,7 +59,7 @@ mkDerivation {
     cookie countable-inflections data-default deepseq directory
     fast-logger filepath ghc-prim hashable haskell-src-exts
     haskell-src-meta hasql hasql-dynamic-statements hasql-implicits
-    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction
+    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction pqi-ffi
     hspec http-client http-client-tls http-media http-types ihp-hsx
     ihp-imagemagick ihp-modal ihp-pagehead ihp-pglistener
     ihp-router ihp-typed-sql inflections interpolate mime-types minio-hs
@@ -83,7 +83,7 @@ mkDerivation {
     cookie countable-inflections data-default deepseq directory
     fast-logger filepath ghc-prim hashable haskell-src-exts
     haskell-src-meta hasql hasql-dynamic-statements hasql-implicits
-    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction
+    hasql-mapping hasql-pool hasql-postgresql-types hasql-transaction pqi-ffi
     http-client http-client-tls http-media http-types ihp-hsx
     ihp-imagemagick ihp-modal ihp-pagehead ihp-pglistener
     ihp-router ihp-typed-sql inflections interpolate mime-types minio-hs
