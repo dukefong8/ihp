@@ -3,7 +3,7 @@
 , haskell-src-meta, hasql, hasql-dynamic-statements
 , hasql-implicits, hasql-mapping, hasql-pool
 , hasql-postgresql-types, hspec, inflections, lib, postgresql-libpq
-, postgresql-syntax, postgresql-types, process, scientific
+, postgresql-syntax, postgresql-types, pqi-ffi, process, scientific
 , string-conversions, template-haskell, temporary, temporary-ospath
 , text, time, unix, uuid, vector
 }:
@@ -16,15 +16,15 @@ mkDerivation {
     countable-inflections deepseq directory filepath hashable
     haskell-src-meta hasql hasql-dynamic-statements hasql-implicits
     hasql-mapping hasql-pool hasql-postgresql-types inflections
-    postgresql-libpq postgresql-syntax postgresql-types process
+    postgresql-libpq postgresql-syntax postgresql-types pqi-ffi process
     scientific string-conversions template-haskell temporary text time
     unix uuid vector
   ];
   testHaskellDepends = [
     base containers directory filepath hasql hasql-dynamic-statements
     hasql-implicits hasql-mapping hasql-pool hasql-postgresql-types
-    hspec process string-conversions temporary temporary-ospath text
-    unix
+    hspec pqi-ffi process string-conversions temporary temporary-ospath
+    text unix
   ];
   homepage = "https://ihp.digitallyinduced.com/";
   description = "Compile-time typed SQL quasiquoter for IHP";

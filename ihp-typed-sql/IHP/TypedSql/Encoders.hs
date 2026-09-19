@@ -7,10 +7,9 @@ Copyright: (c) digitally induced GmbH, 2026
 
 'DefaultParamEncoder' instances for the @postgresql-types@ values that
 "IHP.TypedSql.TypeMapping" maps PostgreSQL OIDs onto: @point@, @polygon@,
-@inet@, @tsvector@ and @interval@. (PostGIS @geometry@ stays in @ihp@,
-"IHP.Hasql.Encoders", which keeps the @Mapping.IsScalar@ bridge matching
-its @postgresql-types@ pin.) The scalar @Int@ family, 'Integer', and the
-'Id'' encoders live here as well.
+@inet@, @tsvector@ and @interval@, plus PostGIS @geometry@ (whose
+@Mapping.IsScalar@ bridge comes from 'Hasql.PostgresqlTypes'). The scalar
+@Int@ family, 'Integer', and the 'Id'' encoders live here as well.
 
 They live here, not in @ihp@, because typedSql /generates code naming these
 types/, so the package must be able to encode them back — including for a
@@ -35,6 +34,7 @@ import           Hasql.Implicits.Encoders (DefaultParamEncoder (..))
 import qualified Hasql.Mapping.IsScalar   as Mapping
 import           Hasql.PostgresqlTypes    () -- IsScalar instances for the postgresql-types values below
 import           IHP.TypedSql.Id          (Id' (..), PrimaryKey)
+import           PostgresqlTypes.Geometry (Geometry)
 import           PostgresqlTypes.Inet     (Inet)
 import           PostgresqlTypes.Interval (Interval)
 import           PostgresqlTypes.Point    (Point)
@@ -111,6 +111,17 @@ instance DefaultParamEncoder Inet where
 instance DefaultParamEncoder (Maybe Inet) where
     defaultParam = Encoders.nullable Mapping.encoder
 
+-- | Encode PostGIS 'Geometry'. The 'Mapping.IsScalar' instance comes from
+-- 'Hasql.PostgresqlTypes'; the OID is resolved by name at query time since
+-- the PostGIS extension assigns it dynamically.
+instance DefaultParamEncoder Geometry where
+    defaultParam = Encoders.nonNullable Mapping.encoder
+
+-- | Encode 'Maybe Geometry' as a nullable PostGIS geometry
+instance DefaultParamEncoder (Maybe Geometry) where
+    defaultParam = Encoders.nullable Mapping.encoder
+
+-- | Encode 'Id' table' for tables with any primary key type that has an 'IsScalar' instance.
 -- | Encode 'Id' table' for tables with any primary key type that has an 'IsScalar' instance.
 -- The 'Id'' type and the 'PrimaryKey' family live in "IHP.TypedSql.Id"; only
 -- their encoders live here, next to every other 'DefaultParamEncoder' instance,
