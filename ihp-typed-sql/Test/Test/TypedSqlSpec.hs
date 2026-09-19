@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Test.TypedSqlSpec where
 
 import           Control.Concurrent                 (threadDelay)
@@ -19,6 +20,11 @@ import qualified Hasql.Pool.Config                 as HasqlPoolConfig
 import qualified Hasql.Connection.Settings         as HasqlSettings
 import qualified Hasql.Session                     as HasqlSession
 import qualified Hasql.Statement                   as HasqlStatement
+#ifdef LIBPQ_BACKEND
+import qualified Pqi.Ffi as Pqi
+#else
+import qualified Pqi.Native as Pqi
+#endif
 import           IHP.TypedSql.ParamHints           (parseSql, extractJoinNullableTables,
                                                     extractNonNullableComputedColumnsFromAst,
                                                     detectStarSelects,
@@ -62,6 +68,23 @@ import           Data.Text                         (Text)
 -- | 'IHP.Prelude.tshow' replacement: render with 'show' and convert to 'Text'.
 tshow :: Show a => a -> Text
 tshow = cs . show
+
+-- | The Hasql connection adapter, matching the @libpq-backend@ flag used by
+-- the library (see @ihp-typed-sql.cabal@). hasql 2.x threads the adapter
+-- explicitly through 'Hasql.Pool.acquire'. (No type annotation: the 'Adapter'
+-- type lives in the @pqi@ package, which the test suite does not depend on
+-- directly; the use site fixes the type.)
+pqiAdapter = Pqi.adapter
+
+-- | The @Pqi@ adapter import for generated ghci test modules, matching the
+-- @libpq-backend@ flag (ghci resolves it from the test package database).
+#ifdef LIBPQ_BACKEND
+pqiAdapterImport :: Text
+pqiAdapterImport = "import qualified Pqi.Ffi as Pqi"
+#else
+pqiAdapterImport :: Text
+pqiAdapterImport = "import qualified Pqi.Native as Pqi"
+#endif
 
 tests :: Spec
 tests = do
@@ -1000,7 +1023,7 @@ withTestPool action = do
             [ HasqlPoolConfig.size 2
             , HasqlPoolConfig.staticConnectionSettings (HasqlSettings.connectionString databaseUrl)
             ]
-    Exception.bracket (HasqlPool.acquire poolConfig) HasqlPool.release action
+    Exception.bracket (HasqlPool.acquire pqiAdapter poolConfig) HasqlPool.release action
 
 -- | Run a SQL statement without a result (for DDL in 'setupSchema').
 execDiscard :: HasqlPool.Pool -> Text -> IO ()
@@ -1329,9 +1352,19 @@ ghciDefaultExtensionCommands =
           , "-XTemplateHaskell"
           , "-XOverloadedRecordDot"
           , "-XDeepSubsumption"
-           , "-XExplicitNamespaces"
-           ]
+          , "-XExplicitNamespaces"
+          ]
+          <> backendDefines
         )
+  where
+    -- The quoter's compile-time backend selection is CPP-driven, and cabal's
+    -- cpp-options do not propagate to the ghci subprocesses, so pass the same
+    -- define the test suite itself was built with (see @ihp-typed-sql.cabal@).
+#ifdef LIBPQ_BACKEND
+    backendDefines = ["-DLIBPQ_BACKEND"]
+#else
+    backendDefines = []
+#endif
 
 findIhpPackageRoot :: IO FilePath
 findIhpPackageRoot = do
@@ -1970,6 +2003,7 @@ runtimeExplicitHasqlModule = Text.unlines
     , "import qualified Hasql.Pool as HasqlPool"
     , "import qualified Hasql.Pool.Config as HasqlPoolConfig"
     , "import qualified Hasql.Session as HasqlSession"
+    , pqiAdapterImport
     , "import IHP.TypedSql.Id (Id' (..), PrimaryKey)"
     , "import IHP.TypedSql.Quoter (typedSql)"
     , "import IHP.TypedSql.Types (QueryCardinality (..), QueryExecResult (..), TypedQuery (..))"
@@ -1991,7 +2025,7 @@ runtimeExplicitHasqlModule = Text.unlines
     , "            [ HasqlPoolConfig.size 2"
     , "            , HasqlPoolConfig.staticConnectionSettings (HasqlSettings.connectionString databaseUrl)"
     , "            ]"
-    , "    Exception.bracket (HasqlPool.acquire poolConfig) HasqlPool.release \\pool -> do"
+    , "    Exception.bracket (HasqlPool.acquire Pqi.adapter poolConfig) HasqlPool.release \\pool -> do"
     , "        _ <- expectRight =<< sqlExecTypedWithPool pool [typedSql| DELETE FROM typed_sql_test_items |]"
     , ""
     , "        let itemId = (\"10000000-0000-0000-0000-000000000001\" :: UUID)"
@@ -2048,6 +2082,7 @@ runtimeEnumModule = Text.unlines
     , "import qualified Hasql.Connection.Settings as HasqlSettings"
     , "import qualified Hasql.Pool as HasqlPool"
     , "import qualified Hasql.Pool.Config as HasqlPoolConfig"
+    , pqiAdapterImport
     , "import IHP.TypedSql.Hasql (sqlQueryTypedWithPool)"
     , "import IHP.TypedSql.Quoter (typedSql)"
     , "import qualified Hasql.Encoders"
@@ -2090,7 +2125,7 @@ runtimeEnumModule = Text.unlines
     , "            [ HasqlPoolConfig.size 2"
     , "            , HasqlPoolConfig.staticConnectionSettings (HasqlSettings.connectionString databaseUrl)"
     , "            ]"
-    , "    Exception.bracket (HasqlPool.acquire poolConfig) HasqlPool.release \\pool -> do"
+    , "    Exception.bracket (HasqlPool.acquire Pqi.adapter poolConfig) HasqlPool.release \\pool -> do"
     , "        -- ${enumVal}: a plain enum value binds against the non-null enum column"
     , "        scalarNames <- expectRight =<< sqlQueryTypedWithPool pool [typedSql| SELECT name FROM typed_sql_test_enum_items WHERE mood = ${Happy} ORDER BY name |]"
     , "        assertTest \"dollar-enumVal\" ((scalarNames :: [Text]) == [\"HappyItem\"])"

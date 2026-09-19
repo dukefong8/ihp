@@ -124,13 +124,14 @@ common shared-properties
             , slugger
             , ihp-imagemagick
             , wai-request-params
-            , hasql
-            , hasql-pool
+            , hasql >= 2.0.1 && < 2.1
+            , hasql-pool >= 1.5 && < 1.6
             , hasql-dynamic-statements
             , hasql-implicits
             , hasql-mapping
             , hasql-postgresql-types
             , hasql-transaction
+            , pqi-ffi
             , ihp-typed-sql
             , postgresql-types
             , postgresql-types-algebra
