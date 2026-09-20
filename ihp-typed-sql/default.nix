@@ -3,6 +3,7 @@
 , hasql-dynamic-statements
 , hasql-implicits, hasql-mapping, hasql-pool, hasql-postgresql-types, hspec
 , inflections, lib, postgresql-libpq, postgresql-syntax, postgresql-types
+, pqi-ffi
 , process, scientific, string-conversions, template-haskell, temporary
 , temporary-ospath, text, time, unix, uuid
 }:
@@ -16,11 +17,11 @@ mkDerivation {
     hasql-implicits
     hasql-mapping hasql-pool hasql-postgresql-types inflections postgresql-libpq
     postgresql-syntax
-    postgresql-types process scientific string-conversions template-haskell
+    postgresql-types pqi-ffi process scientific string-conversions template-haskell
     temporary text time unix uuid
   ];
   testHaskellDepends = [
-    base containers directory filepath hasql hasql-pool hspec process
+    base containers directory filepath hasql hasql-pool hspec pqi-ffi process
     string-conversions temporary-ospath text unix
   ];
   homepage = "https://ihp.digitallyinduced.com/";
